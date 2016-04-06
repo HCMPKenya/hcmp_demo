@@ -37,7 +37,7 @@ class Dumper extends MY_Controller {
 
 		header("Cache-Control: public");
 		// header("Content-Description: File Transfer");
-		//header("Content-Length: ". filesize("$zip_name").";");
+		// header("Content-Length: ". filesize("$zip_name").";");
 		header("Content-Disposition: attachment; filename=$zip_name");
 		header("Content-type: application/zip"); 
 		header("Content-Transfer-Encoding: binary");
