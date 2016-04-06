@@ -22,7 +22,7 @@ class Stock extends MY_Controller {
 
 	/*
 	 |--------------------------------------------------------------------------
-	 | update facility stock
+	 | update facility stockupdate_stock_level_external_edit
 	 |--------------------------------------------------------------------------
 	 |0. Set up the facility stock
 	 |1. load the view
@@ -187,6 +187,7 @@ class Stock extends MY_Controller {
 		$data['banner_text'] = "Update Stock Level";
 		$data['commodities'] = Commodities::get_facility_commodities($facility_code);
 		$data['commodity_source'] = commodity_source::get_all();
+		$data['source_names'] = commodity_source::get_all_other_source_names();
 		$data['import'] = $import;
 		$this -> load -> view("shared_files/template/template", $data);
 
@@ -195,10 +196,60 @@ class Stock extends MY_Controller {
 	public function update_stock_via_excel() {
 
 		if (isset($_FILES['file']) && $_FILES['file']['size'] > 0) {
+			$inputFileName = $_FILES["file"]["tmp_name"];
+			$inputFileType = PHPExcel_IOFactory::identify($inputFileName);			
+			$excel2 = PHPExcel_IOFactory::createReader($inputFileType);
+			$excel2 = $objPHPExcel = $excel2 -> load($_FILES["file"]["tmp_name"]);
+			// Empty Sheet
+			
+			$sheet = $objPHPExcel -> getSheet(0);
+			$highestRow = $sheet -> getHighestRow();
+
+			$highestColumn = $sheet -> getHighestColumn();
+			$temp = array();
+			//  Loop through each row of the worksheet in turn
+			for ($row = 2; $row <= $highestRow; $row++) {
+				//  Read a row of data into an array
+				$rowData = $sheet -> rangeToArray('A' . $row . ':' . $highestColumn . $row, NULL, TRUE, FALSE);
+				if (($rowData[0][7])!='') {
+				// if ((($rowData[$row][7])!='')&&(($rowData[$row][8])!=''))&&(($rowData[$row][9])!=''))) {
+					if ($rowData[0][11] >=1) {
+						$unit_of_issue = "Unit_Size";
+						// $unit_of_issue = "Pack_Size";
+						$total_units = $rowData[0][11];
+						$stock_level = $rowData[0][11];
+					} elseif ($rowData[0][10] >= 1) {
+						$unit_of_issue = "Pack_Size";
+						// $unit_of_issue = "Unit_Size";
+						$unit_size = $rowData[0][6];
+						if($unit_size==0){
+							$unit_size = 1;
+						}
+						$total_units = $rowData[0][10] * $unit_size;
+						$stock_level = $rowData[0][10];
+					}
+					// echo $unit_size.'<br/>';					
+					$InvDate = date('t M Y', PHPExcel_Shared_Date::ExcelToPHP($rowData[0][9]));
+
+					array_push($temp, array('commodity_id' => $rowData[0][0], 'unit_size' => $rowData[0][5], 'batch_no' => $rowData[0][7], 'manu' => $rowData[0][8], 'expiry_date' => $InvDate, 'stock_level' => $stock_level, 'total_unit_count' => $rowData[0][6], 'unit_issue' => $unit_of_issue, 'total_units' => $total_units, 'source_of_item' => $rowData[0][3], 'supplier' => $rowData[0][2], ));
+				}
+				
+			}			
+			unset($objPHPExcel);
+
+			$this -> autosave_update_stock($temp, $this -> session -> userdata('facility_id'));
+
+		}
+
+	}//auto save the data here
+
+	public function update_stock_via_excel_bu() {
+
+		if (isset($_FILES['file']) && $_FILES['file']['size'] > 0) {
 			$excel2 = PHPExcel_IOFactory::createReader('Excel2007');
 			$excel2 = $objPHPExcel = $excel2 -> load($_FILES["file"]["tmp_name"]);
 			// Empty Sheet
-
+			
 			$sheet = $objPHPExcel -> getSheet(0);
 			$highestRow = $sheet -> getHighestRow();
 
@@ -230,7 +281,6 @@ class Stock extends MY_Controller {
 		}
 
 	}//auto save the data here
-
 	public function autosave_update_stock($excel_data = null, $facility_code = null) {
 		if (isset($excel_data)) :
 			foreach ($excel_data as $row_data) :
@@ -274,6 +324,58 @@ class Stock extends MY_Controller {
 			endif;
 		endif;
 	}
+	// public function autosave_update_stock_bu($excel_data = null, $facility_code = null) {		
+
+	// 	if (isset($excel_data)) :
+
+	// 		// echo "<pre>";print_r($excel_data);echo "</pre>";exit;
+	// 		foreach ($excel_data as $row_data) :
+	// 			//get the data
+	// 			// echo "<pre>";echo $row_data['source_of_item'];
+	// 			// echo "<pre>";echo $row_data['source_of_item'];echo "</pre>";
+	// 				// $src_id = Commodities::get_source_id_from_name();
+	// 				// echo "<pre>";print_r($src_id);exit;
+	// 			// $does_facility_have_this_drug_in_temp_table = $this -> does_facility_have_this_drug_in_temp_table($row_data['commodity_id'], $excel_data['facility_code'], $row_data['batch_no']);
+	// 			if ($does_facility_have_this_drug_in_temp_table > 0) :
+	// 				//send the data to the db
+	// 				// $this -> update_batch_in_temp($row_data['expiry_date'], $row_data['batch_no'], $row_data['manu'], $row_data['stock_level'], $row_data['total_unit_count'], $row_data['commodity_id'], $facility_code, $row_data['unit_issue'], $row_data['total_units'], $src_id, $row_data['supplier']);
+	// 			else :
+	// 				//save the data
+	// 				// echo "Im HERE";
+	// 				$mydata = array('facility_code' => $facility_code, 'commodity_id' => $row_data['commodity_id'], 'batch_no' => $row_data['batch_no'], 'manu' => $row_data['manu'], 'expiry_date' => $row_data['expiry_date'], 'stock_level' => $row_data['stock_level'], 'total_unit_count' => $row_data['total_unit_count'], 'unit_size' => $row_data['unit_size'], 'unit_issue' => $row_data['unit_issue'], 'total_units' => $row_data['total_units'], 'source_of_item' => $row_data['source_of_item'], 'supplier' => $row_data['supplier']);
+	// 				$this -> save_batch_in_temp($mydata);
+	// 			endif;
+	// 		endforeach;
+	// 		// exit;
+	// 		redirect('stock/facility_stock_first_run/first_run');
+	// 	elseif (!isset($excel_data)) :
+	// 		$facility_code = $this -> session -> userdata('facility_id');
+	// 		$commodity_id = $this -> input -> post('commodity_id');
+	// 		$unit_size = $this -> input -> post('unit_size');
+	// 		$expiry_date = $this -> input -> post('expiry_date');
+	// 		$batch_no = $this -> input -> post('batch_no');
+	// 		$manu = $this -> input -> post('manuf');
+	// 		$stock_level = $this -> input -> post('stock_level');
+	// 		$total_unit_count = $this -> input -> post('total_units_count');
+	// 		$unit_issue = $this -> input -> post('unit_issue');
+	// 		$total_units = $this -> input -> post('total_units');
+	// 		$source_of_item = $this -> input -> post('source_of_item');
+	// 		$supplier = $this -> input -> post('supplier');
+
+	// 		$mydata = array('facility_code' => $facility_code, 'commodity_id' => $commodity_id, 'batch_no' => $batch_no, 'manu' => $manu, 'expiry_date' => $expiry_date, 'stock_level' => $stock_level, 'total_unit_count' => $total_unit_count, 'unit_size' => $unit_size, 'unit_issue' => $unit_issue, 'total_units' => $total_units, 'source_of_item' => $source_of_item, 'supplier' => $supplier);
+	// 		//get the data
+	// 		$does_facility_have_this_drug_in_temp_table = $this -> does_facility_have_this_drug_in_temp_table($commodity_id, $facility_code, $batch_no);
+	// 		if ($does_facility_have_this_drug_in_temp_table > 0) :
+	// 			//send the data to the db
+	// 			$this -> update_batch_in_temp($expiry_date, $batch_no, $manu, $stock_level, $total_unit_count, $commodity_id, $facility_code, $unit_issue, $total_units, $source_of_item, $supplier);
+	// 			echo "UPDATE SUCCESS BATCH NO: $batch_no ";
+	// 		else :
+	// 			//save the data
+	// 			$this -> save_batch_in_temp($mydata);
+	// 			echo "SUCCESS UPDATE BATCH NO: $batch_no";
+	// 		endif;
+	// 	endif;
+	// }
 
 	public function does_facility_have_this_drug_in_temp_table($commodity_id, $facility_code, $batch_no) {
 		return facility_stocks_temp::check_if_facility_has_drug_in_temp($commodity_id, $facility_code, $batch_no);
@@ -313,8 +415,31 @@ class Stock extends MY_Controller {
 
 	// finally add the stock here, the final step to the first step of new facilities getting on board
 	public function add_stock_level() {
-
+		//echo "<pre>"; print_r($_POST); echo "</pre>"; exit;
 		if ($this -> input -> post('commodity_id')) :
+			if($this->input->post('new_source_name')){
+				$source_name = $this->input->post('new_source_name');
+				$name_exists = commodity_source::check_name_exists($source_name);
+				$other_source_id = array();
+				if($name_exists == 1){
+					$other_source_id = commodity_source::find_source_id($source_name);
+					/*for($i = 0; $i < count($other_source_id); $i++){
+						$other_source_id[$i] = commodity_source::find_source_id($source_name);
+					}*/
+					//print_r($other_source_id);
+					//exit;
+				}
+				else{
+					$insert_name_trans = Doctrine_Manager::getInstance()->getCurrentConnection();
+					$insert_name_trans->execute("INSERT INTO commodity_source_other(source_name) VALUES ('$source_name')");
+					$other_source_id = $insert_name_trans->lastInsertId();
+					/*for($i = 0; $i < count($other_source_id); $i++){
+						$other_source_id[$i] = $insert_name_trans->lastInsertId();
+					}*/
+					//print_r($other_source_id);
+					//exit;
+				}
+			}
 			$facility_code = $this -> session -> userdata('facility_id');
 			$form_type = $this -> input -> post('form_type');
 			$commodity_id = array_values($this -> input -> post('desc'));
@@ -324,8 +449,8 @@ class Stock extends MY_Controller {
 			$manu = array_values($this -> input -> post('commodity_manufacture'));
 			$total_unit_count = array_values($this -> input -> post('commodity_total_units'));
 			$source_of_item = array_values($this -> input -> post('source_of_item'));
+			$commodity_price = array_values($this -> input-> post('price'));
 			$date_of_entry_ = ($form_type == 'first_run') ? date('y-m-d H:i:s') : array_values($this -> input -> post('date_received'));
-
 			$count = count($commodity_id);
 			$commodity_id_array = $data_array_facility_issues = $data_array_facility_transaction = array();
 
@@ -334,8 +459,16 @@ class Stock extends MY_Controller {
 				$status = ($total_unit_count[$i] > 0) ? true : false;
 				$status = ($status && strtotime(str_replace(",", " ", $expiry_date[$i])) > strtotime('now')) ? 1 : 2;
 				$date_of_entry = ($form_type == 'first_run') ? date('y-m-d H:i:s') : date('Y-m-d', strtotime($date_of_entry_[$i]));
-				$mydata = array('facility_code' => $facility_code, 'commodity_id' => $commodity_id[$i], 'batch_no' => $batch_no[$i], 'manufacture' => $manu[$i], 'expiry_date' => date('y-m-d', strtotime(str_replace(",", " ", $expiry_date[$i]))), 'initial_quantity' => $total_unit_count[$i], 'current_balance' => $total_unit_count[$i], 'source_of_commodity' => $source_of_item[$i], 'date_added' => $date_of_entry, 'status' => $status);
-
+				$mydata = array('facility_code' => $facility_code, 'commodity_id' => $commodity_id[$i], 'batch_no' => $batch_no[$i], 'manufacture' => $manu[$i], 'expiry_date' => date('y-m-d', strtotime(str_replace(",", " ", $expiry_date[$i]))), 'initial_quantity' => $total_unit_count[$i], 'current_balance' => $total_unit_count[$i], 'source_of_commodity' => $source_of_item[$i], 'other_source_id' => $other_source_id[$i], 'date_added' => $date_of_entry, 'status' => $status);
+				//echo "<pre>"; print_r($mydata); echo "</pre>";	
+				if($this -> input -> post('price')):
+					$price_data = array('facility_code' => $facility_code, 'commodity_id' => $commodity_id[$i], 'batch_no' => $batch_no[$i], 'other_source_id' => $other_source_id[$i], 'price' => $commodity_price[$i]);
+					//echo "<pre>"; print_r($price_data); echo "</pre>"; exit;
+					commodity_source_other_prices::update_prices($price_data);
+					/*$store_price_transaction = Doctrine_Manager::getInstance() -> getCurrentConnection();
+					$store_price_transaction -> execute("INSERT INTO commodity_source_other_prices(facility_code, commodity_id,
+						batch_no, other_source_id, price) VALUES ('$facility_code', '$commodity_id[$i]', '$batch_no[$i]', '$other_source_id', '$commodity_price[$i]')");*/
+				endif;
 				//get the closing stock of the given item
 				$facility_stock_ = facility_stocks::get_facility_commodity_total($facility_code, $commodity_id[$i], $date_of_entry) -> toArray();
 				//update the facility stock table
@@ -344,7 +477,7 @@ class Stock extends MY_Controller {
 				$facility_has_commodity = facility_transaction_table::get_if_commodity_is_in_table($facility_code, $commodity_id[$i]);
 
 				$total_unit_count_ = $total_unit_count[$i] * 1;
-
+				
 				if ($facility_has_commodity > 0 && $status == 1) :
 					//update the opening balance for the transaction table
 					$inserttransaction = Doctrine_Manager::getInstance() -> getCurrentConnection();
@@ -458,6 +591,128 @@ class Stock extends MY_Controller {
 			//$this->hcmp_functions->send_stock_update_sms();
 			$this -> session -> set_flashdata('system_success_message', "Stock Levels Have Been Updated");
 			redirect('reports/facility_stock_data');
+		endif;
+	}
+
+	public function update_stock_level_external() {
+		// echo "<pre>";
+		// print_r($_POST);die;
+		if ($this -> input -> post('facility_stock_id')) :
+			$facility_stock_id = $this -> input -> post('facility_stock_id');
+			$count_records = count($facility_stock_id);			
+			$facility_code = $this -> session -> userdata('facility_id');
+			$receiving_facility = array_values($this -> input -> post('facility_name'));
+			$commodity_id = array_values($this -> input -> post('commodity_id'));
+			$expiry_date = array_values($this -> input -> post('clone_datepicker'));
+			$batch_no = array_values($this -> input -> post('commodity_batch_no'));
+			$manu = array_values($this -> input -> post('commodity_manufacture'));
+			$total_unit_count = array_values($this -> input -> post('actual_quantity'));
+			$service_point = array_values($this -> input -> post('service_point'));
+			$commodity_total_units = array_values($this -> input -> post('commodity_total_units'));
+			// $source_of_item = array_values($this -> input -> post('source_of_item'));
+			$count = count($commodity_id);
+			$date_of_entry = date('y-m-d H:i:s');
+			//collect n set the data in the array
+			for ($i = 0; $i < $count; $i++) :
+				$receive_facility_id = $receiving_facility[$i];
+				$record_id = $facility_stock_id[$i];				
+				$quantity_sent = $commodity_total_units[$i];
+				// $mydata = array($receive_facility_id,$quantity_sent,$batch_no);
+				$myobj = Doctrine::getTable('redistribution_data') -> find($record_id);
+				$myobj -> quantity_sent = $quantity_sent;
+				$myobj -> receive_facility_code = $receive_facility_id;
+				$myobj -> save();
+				// $mydata = array('id'=>$record_id,'receive_facility_code' => $receive_facility_id, 'quantity_sent' => $quantity_sent, 'batch_no' => $batch_no);
+				// facility_stocks::update_redistribution_data($mydata,$record_id);
+				// if ($total_unit_count[$i] > 0) ://check if the balance is more than 0 ie they recieved something
+				// 	if ($this -> session -> userdata('user_indicator') == 'district') :
+				// 	//check if the user is district if so the facility which was given the item is not using HCMP
+				// 	else :
+				// 		$mydata = array('facility_code' => $facility_code, 'commodity_id' => $commodity_id[$i], 'batch_no' => $batch_no[$i], 'manufacture' => $manu[$i], 'expiry_date' => date('y-m-d', strtotime(str_replace(",", " ", $expiry_date[$i]))), 'initial_quantity' => $total_unit_count[$i], 'current_balance' => $total_unit_count[$i], 'source_of_commodity' => $source_of_item[$i], 'date_added' => $date_of_entry);
+				// 		//get the closing stock of the given item
+				// 		$facility_stock = facility_stocks::get_facility_commodity_total($facility_code, $commodity_id[$i]) -> toArray();
+				// 		//update the facility stock table
+				// 		facility_stocks::update_facility_stock($mydata);
+				// 		// save this infor in the issues table
+				// 		$facility_name = isset($service_point[$i]) ? Facilities::get_facility_name2($service_point[$i]) : null;
+				// 		$facility_name = isset($facility_name) ? $facility_name['facility_name'] : 'N/A';
+				// 		$total_unit_count_ = $total_unit_count[$i] * -1;
+				// 		$mydata = array('facility_code' => $facility_code, 's11_No' => '(+ve Adj) Stock Addition', 'commodity_id' => $commodity_id[$i], 'batch_no' => $batch_no[$i], 'expiry_date' => date('y-m-d', strtotime(str_replace(",", " ", $expiry_date[$i]))), 'balance_as_of' => $facility_stock[0]['commodity_balance'], 'date_issued' => date('y-m-d'), 'issued_to' => "inter-facility donation: " . $facility_name, 'qty_issued' => $total_unit_count_, 'issued_by' => $this -> session -> userdata('user_id'));
+				// 		//$this -> session -> userdata('identity')
+				// 		// update the issues table
+				// 		facility_issues::update_issues_table($mydata);
+				// 		//check
+				// 		$facility_has_commodity = facility_transaction_table::get_if_commodity_is_in_table($facility_code, $commodity_id[$i]);
+
+				// 		if ($facility_has_commodity > 0) ://update the opening balance for the transaction table
+				// 			$inserttransaction = Doctrine_Manager::getInstance() -> getCurrentConnection();
+				// 			$inserttransaction -> execute("UPDATE `facility_transaction_table` SET `opening_balance` =`opening_balance`+$total_unit_count[$i]
+    //                                       WHERE `commodity_id`= '$commodity_id[$i]' and status='1' and facility_code=$facility_code");
+				// 		else ://get the data to send to the facility_transaction_table
+				// 			$mydata2 = array('facility_code' => $facility_code, 'commodity_id' => $commodity_id[$i], 'opening_balance' => $total_unit_count[$i], 'total_issues' => 0, 'total_receipts' => 0, 'adjustmentpve' => 0, 'adjustmentnve' => 0, 'date_added' => $date_of_entry, 'closing_stock' => $total_unit_count[$i], 'status' => 1);
+				// 			//send the data to the facility_transaction_table
+				// 			facility_transaction_table::update_facility_table($mydata2);
+				// 		endif;
+
+				// 		//update the redistribution data
+				// 		$myobj = Doctrine::getTable('redistribution_data') -> find($facility_stock_id[$i]);
+				// 		$myobj -> quantity_received = $total_unit_count[$i];
+				// 		$myobj -> receiver_id = $this -> session -> userdata('user_id');
+				// 		$myobj -> date_received = date('y-m-d');
+				// 		$myobj -> status = 1;
+				// 		$myobj -> save();
+				// 	endif;
+				// endif;
+			endfor;
+			//set the notifications
+			//$this->hcmp_functions->send_stock_update_sms();
+			$this -> session -> set_flashdata('system_success_message', "Redistribution Data Has Been Updated");
+			redirect('issues/confirm_external_issue');
+		endif;
+	}
+
+	public function update_stock_level_external_edit() {
+		// echo "<pre>";
+		// print_r($_POST);die;
+		if ($this -> input -> post('facility_stock_id')) :
+			$redistribution_id = $this -> input -> post('redistribution_id');
+			$facility_stock_id = $this -> input -> post('facility_stock_id');				
+			$facility_code = $this -> session -> userdata('facility_id');
+			$receiving_facility = array_values($this -> input -> post('facility_name'));			
+			$commodity_initial_quantity = array_values($this -> input -> post('old_quantity'));
+			$commodity_total_units = array_values($this -> input -> post('commodity_total_units'));
+			// $source_of_item = array_values($this -> input -> post('source_of_item'));
+			$count = count($facility_stock_id);
+			$date_of_entry = date('y-m-d H:i:s');
+			//collect n set the data in the array
+			for ($i = 0; $i < $count; $i++) :
+				$redistribution_id = $redistribution_id[$i];
+				$receive_facility_id = $receiving_facility[$i];
+				$stock_id = $facility_stock_id[$i];				
+				$quantity_sent = $commodity_total_units[$i];
+				$old_quantity = $commodity_initial_quantity[$i];
+
+				$stock_data = facility_stocks::get_facilty_stock_id($stock_id);					
+				foreach ($stock_data as $key => $value) {
+					$current_balance = intval($value['current_balance']);
+					$new_balance = $current_balance - $quantity_sent;					
+					$new_quantity = 0;
+					if ($quantity_sent>0) {
+						$new_quantity = $quantity_sent;
+					}else{
+						$new_quantity = $old_quantity;						
+					}
+					$update_array = array('id'=>$stock_id,'current_balance'=>$new_balance);
+					$inserttransaction = Doctrine_Manager::getInstance() -> getCurrentConnection();
+					$inserttransaction -> execute("UPDATE `facility_stocks` SET `current_balance` = '$new_balance' WHERE id= '$stock_id'");
+					$inserttransaction -> execute("UPDATE `redistribution_data` SET `receive_facility_code` = '$receive_facility_id', `quantity_sent` = '$new_quantity' WHERE id= '$redistribution_id'");
+				}
+				
+			endfor;
+			//set the notifications
+			//$this->hcmp_functions->send_stock_update_sms();
+			$this -> session -> set_flashdata('system_success_message', "Redistribution Data Has Been Updated");
+			redirect('issues/confirm_external_issue');
 		endif;
 	}
 

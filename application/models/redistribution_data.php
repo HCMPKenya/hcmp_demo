@@ -1,3 +1,4 @@
+
 <?php
 
 class redistribution_data extends Doctrine_Record {
@@ -39,6 +40,34 @@ class redistribution_data extends Doctrine_Record {
 		return $redistribution_data;
 	}
 
+    public function get_one($id){
+        $sql = "SELECT quantity_sent, facility_stock_ref_id as stock_id FROM redistribution_data where id ='$id'";
+        return $this->db->query($sql)->result_array();
+    }
+
+    public  function get_all_active_edit($facility_code,$option=null) {
+        $and=($option=='to-me')? " receive_facility_code=$facility_code" : " source_facility_code=$facility_code";
+    
+        $sql = "SELECT r.*, c.commodity_name,c.total_commodity_units,f.facility_name as receiving_facility,c.commodity_code,c.unit_size,fs.current_balance,d.district as district_name, d.id as receiver_district_id   FROM redistribution_data r, facility_stocks fs, commodities c,facilities f, districts d  WHERE fs.commodity_id = r.commodity_id AND r.source_facility_code = '$facility_code'
+                AND fs.facility_code = '$facility_code'  AND r.commodity_id = c.id AND d.id = f.district AND f.facility_code = r.source_facility_code  AND r.batch_no = fs.batch_no  AND r.status = 0 GROUP BY r.batch_no, r.id";        
+        return $this->db->query($sql)->result_array();
+    }
+
+    public static function get_all_active_edit_old($facility_code) {        
+        $query = Doctrine_Query::create() -> select("r.*, c.commodity_name,fs.current_balance") -> from("redistribution_data r, facility_stocks fs, commodities c") -> where("fs.commodity_id = r.commodity_id AND r.source_facility_code = '$facility_code' AND fs.facility_code = '$facility_code' AND r.commodity_id = c.id  AND r.batch_no = fs.batch_no AND r.status = 0");
+        
+         $query=Doctrine_Manager::getInstance()->getCurrentConnection()->fetchAll("SELECT 
+                r.*, c.commodity_name,fs.current_balance  FROM redistribution_data r, facility_stocks fs, commodities c
+                WHERE fs.commodity_id = r.commodity_id AND r.source_facility_code = '$facility_code'
+                AND fs.facility_code = '$facility_code'
+                AND r.commodity_id = c.id
+                AND r.batch_no = fs.batch_no
+                    AND r.status = 0
+                    GROUP By r.batch_no");  
+
+            return $query;  
+    }
+
 		public static function get_all_active_drug_store($district_id,$option=null) {
 		$and=($option=='to-me')? " receive_facility_code=2":" source_facility_code=2";
 		$query = Doctrine_Query::create() -> select("*") -> from("redistribution_data") -> where("$and and status=0 and source_district_id = $district_id");
@@ -48,16 +77,7 @@ class redistribution_data extends Doctrine_Record {
 	
     public function get_all_active_drug_store_county($county_id, $option = null){
         $and_data = ($option == 'to-me') ? "receive_facility_code = 4" : "source_facility_code = 4";
-        $in_county_donations = Doctrine_Manager::getInstance() -> getCurrentConnection() -> fetchAll("
-            SELECT 
-    *
-FROM
-    redistribution_data rd 
-    
-WHERE
-    $and_data AND rd.source_county_id = '$county_id'
-;
-        ");
+        $query = Doctrine_Query::create() -> select("*") -> from("redistribution_data") -> where("$and and status=0 and source_county_id = $county_id");
         return $in_county_donations;
     }
 	public static function get_redistribution_data($facility_code,$district_id,$county_id,$year){
@@ -150,5 +170,29 @@ WHERE
 
 	return $query;	
 	}
+
+    public static function get_redistribution_mismatches_count($facility_code){
+        $mismatch_count = Doctrine_Manager::getInstance()->getCurrentConnection()->fetchAll("
+            SELECT COUNT(*) AS ms_count
+            FROM redistribution_data rd
+            WHERE (rd.quantity_received < rd.quantity_sent OR rd.quantity_received > rd.quantity_sent)
+            AND rd.source_facility_code = '$facility_code';
+        ");
+        $count = 0;
+        foreach ($mismatch_count as $key => $value) {
+            $count = $value['ms_count'];
+        }
+        return $count;
+    }
+
+    public static function get_redistribution_mismatches($facility_code){
+        $mismatch_data = Doctrine_Manager::getInstance()->getCurrentConnection()->fetchAll("
+            SELECT * 
+            FROM redistribution_data rd
+            WHERE (rd.quantity_received < rd.quantity_sent OR rd.quantity_received > rd.quantity_sent)
+            AND rd.source_facility_code = '$facility_code';
+        ");
+        return $mismatch_data;
+    }
 }
 ?>

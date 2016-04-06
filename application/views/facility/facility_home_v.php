@@ -24,7 +24,7 @@
         <h5>Donations</h5> 
         	<p>
 			<a class="link" href="<?php echo base_url('issues/confirm_external_issue/to-me') ?>"><span class="badge"><?php 
-				echo $facility_dashboard_notifications['facility_donations_pending'];?></span> Items have been donated and are pending receipt</a> 
+				echo $facility_dashboard_notifications['facility_donations_pending'];?></span> Items have been donated to you and are pending receipt</a> 
 			</p>
 			 </div>
 		  <?php endif; //donations_pending?>
@@ -79,6 +79,16 @@
 			</p> 
         </div>
         <?php endif; // items_stocked_out_in_facility?>
+        <?php //if($facility_dashboard_notifications['facility_redistribution_mismatches']> 0): ?>
+       <!--  <div style="height:auto; margin-bottom:2px;" class="warn message">
+          <h5>Redistribution Mismatches</h5>
+          <p>
+            <a class="link" href="<?php// echo base_url('reports/redistribution_mismatches') ?>">
+              <span class="badge"><?php //echo $facility_dashboard_notifications['facility_redistribution_mismatches']; ?></span> Redistribution mismatches found
+            </a>//
+          </p>
+        </div> -->
+      <?php //endif; //Redistribution Mismatches?>
         <?php if(array_key_exists('pending_all', $facility_dashboard_notifications['facility_order_count']) 
         && @$facility_dashboard_notifications['facility_order_count']['pending_all']>0): ?>
       	<div style="height:auto; margin-bottom: 2px" class="warn message ">      	
@@ -178,7 +188,27 @@
          <div style="height:auto; margin-bottom: 2px" class="reports message ">
           <a href="<?php echo base_url("reports") ?>"><h5>Reports</h5></a>        
         </div>
+        <div style="height:auto; margin-bottom: 2px" class="reports message ">
+          <a href="<?php echo base_url("issues/reversals") ?>"><h5>Reversals</h5></a>        
+        </div>
         <?php endif; ?>
+        <?php 
+          if($identifier=='facility_admin'){?>
+            <!--  
+             <div style="height:auto; margin-bottom: 2px" class="reports message ">
+                <a href="<?php echo base_url("git_updater/admin_updates_home"); ?>"><h5>System Updates</h5></a>        
+             </div>
+
+              <div style="height:auto; margin-bottom: 2px" class="reports message ">
+                <a href="<?php //echo base_url("client_sync/index"); ?>"><h5>Database Updates</h5></a>        
+             </div>
+              -->
+
+               <div style="height:auto; margin-bottom: 2px" class="reports message ">
+                <a href="<?php echo base_url("client_sync/database_setup"); ?>"><h5>Database Setup</h5></a>        
+             </div>
+        <?php }
+        ?>
       </div>
         </div>      
 
@@ -263,7 +293,7 @@
        $('#main-content').on('click', '.upload',function(e){
           e.preventDefault(); 
      var file = $('#file').val();
-         var exts = ['xls','xlsx'];
+         var exts = ['xls','xlsx','txt'];
       // first check if file field has any value
       if ( file ) {
         // split file name at dot

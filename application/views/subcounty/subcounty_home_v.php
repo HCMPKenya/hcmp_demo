@@ -124,7 +124,9 @@ $identifier = $this -> session -> userdata('user_indicator');
                     <div class="panel-heading">
                         <h4 class="panel-title">
                             <!-- <a data-toggle="collapse" data-parent="#accordion" href="#collapseTwo" id="system_usage"><span class="glyphicon glyphicon-signal"> -->
-                            <a  href="<?php echo base_url().'reports/system_usage_temp'; ?>" id="system_usage"><span class="glyphicon glyphicon-signal">
+                            <a  href="#collapseTwo" id="new_system_usage"><span class="glyphicon glyphicon-signal">
+                            <!-- <a  href="<?php// echo base_url().'reports/new_system_usage_temp'; ?>" id="system_usage"><span class="glyphicon glyphicon-signal"> -->
+                            <!-- <a  href="<?php //echo base_url().'reports/system_usage_temp'; ?>" id="system_usage"><span class="glyphicon glyphicon-signal"> -->
                             </span>System Usage</a>
                         </h4></a>
                         </h4>
@@ -132,20 +134,14 @@ $identifier = $this -> session -> userdata('user_indicator');
                      <?php
                         $identifier = $this -> session -> userdata('user_indicator');
                         // echo "This".$identifier;
-                        if ($identifier=='district') {
+                        if (($identifier=='district') || ($identifier=='county')) {
                         // if ($identifier=='district' || $identifier=='county') {
                         ?>
-                    <div class="panel-body">
-                        <table class="table">
-                            <tr>
-                                <td>
-                                    <!-- <a href="<?php echo base_url().'reports/potential_expiries' ?>">Potential Expiries</a> -->
-                                    <a href="<?php echo base_url("facility_activation/facility_dash") ?>">Facility Activation</a>
-                                </td>
-                            </tr>
-
-                        </table>
-
+                    <div style="background-color: #F5F5F5;" class="panel-body">
+                        <a href="<?php echo base_url("facility_activation/facility_dash") ?>"><span class="glyphicon glyphicon-plus-sign"></span> Facility Activation</a>
+                    </div>
+                    <div style="background-color: #F5F5F5;" class="panel-body">
+                        <a href="<?php echo base_url("facility_activation/facility_offline") ?>"><span class="glyphicon glyphicon-cog"></span> Setup Offline</a>
                     </div>
                     <?php }?>
                   <!--  <div id="collapseTwo" class="panel-collapse collapse <?php echo $active_panel=='stocking_levels'? 'in': null; ?>">
@@ -200,7 +196,8 @@ $identifier = $this -> session -> userdata('user_indicator');
 
   $('.page-header').html('Consumption');
   $('#consumption').parent().parent().parent().addClass('active-panel');
-  ajax_request_replace_div_content('reports/consumption_data_dashboard/NULL/NULL/NULL/NULL/NULL/NULL/NULL/1',"#notification");
+  ajax_request_replace_div_content('reports/generate_county_filter/',"#notification");
+  // ajax_request_replace_div_content('reports/consumption_data_dashboard/NULL/NULL/NULL/NULL/NULL/NULL/NULL/1',"#notification");
  
  
   $('[data-toggle=offcanvas]').click(function () {
@@ -268,10 +265,15 @@ $('.page-header').html('');
 ajax_request_replace_div_content('divisional_reports/program_reports',"#notification");
 });
 //System Usage function
-$("#system_usage").on('click', function(){
+// $("#system_usage").on('click', function(){
+// active_panel(this);
+// $('.page-header').html('System Usage');
+// ajax_request_replace_div_content('reports/facility_mapping',"#notification");
+// });
+$("#new_system_usage").on('click', function(){
 active_panel(this);
 $('.page-header').html('System Usage');
-ajax_request_replace_div_content('reports/facility_mapping',"#notification");
+ajax_request_replace_div_content('reports/new_system_usage_temp',"#notification");
 });
 // $("#system_usage").on('click', function(){
 //      window.location.href = "<?php echo base_url();?>reports/system_usage_temp" ;
