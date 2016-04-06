@@ -13,6 +13,7 @@ database_backups
 
 system/libraries/Hcmp_functions.php
 application/config/database.php
+application/config/config.php
 .htaccess
 *.xls
 application/views/subcounty/ajax/system_usage_graph.php

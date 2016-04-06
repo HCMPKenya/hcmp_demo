@@ -15,7 +15,7 @@
 |
 */
 
-$config['base_url']	= '';
+$config['base_url'] = 'http://'.$_SERVER['SERVER_NAME'].'/hcmp_demo/';
 
 /*
 |--------------------------------------------------------------------------
@@ -361,3 +361,4 @@ $config['proxy_ips'] = '';
 
 /* End of file config.php */
 /* Location: ./application/config/config.php */
+
