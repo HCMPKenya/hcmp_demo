@@ -50,7 +50,7 @@ class Synchronization extends MY_Controller {
 
 	public function sync(){
 		$facility_code = $this->session->userdata('facility_id');
-		// echo $facility_code;exit;
+		//echo $facility_code;exit;
 	    $all_tables = $this->db->list_tables();
 	    // $tables_to_be_ignored = array('commodities','commodity_division_details','facilities');//add tables to be ignored by database sync
 
@@ -76,7 +76,7 @@ class Synchronization extends MY_Controller {
         }
 	          
 
-		// echo "<pre>";print_r($data_from_table);exit;
+		 echo "<pre>";print_r($data_from_table);exit;
 		// $write_to_file = $this->receive_data($facility_code,$data_from_table);
 		
 		// echo FCPATH;exit;
