@@ -92,7 +92,7 @@ class Synchronization extends MY_Controller {
 
 		$queried_data = http_build_query($data_from_table);
 		$file_write = $this->receive_data($facility_code,$data_from_table);
-		echo "<pre>";print_r($file_write);
+		echo "<pre> this";print_r($file_write);
 		// echo "<pre>";print_r($queried_data);exit;
 		// $url = "41.89.6.209/hcmp_demo/synchronization/receive_data/?facility_code=".$facility_code.'?data='.$queried_data;
 		
@@ -145,7 +145,7 @@ class Synchronization extends MY_Controller {
 		// if(!file_exists(dirname(FCPATH.'sync_files'))): 
 		//     mkdir(dirname(FCPATH.'sync_files'));
 		// endif;
-		$file = FCPATH.'sync_files/'.$filestamp.'_'.$facility_code.'.txt';
+		$file = FCPATH.'sync_files\\'.$filestamp.'_'.$facility_code.'.txt';
 		$file = trim($file);
 		$fp = fopen($file, 'w') or die('Cannot open file: '.$file);;
 
@@ -165,35 +165,33 @@ class Synchronization extends MY_Controller {
 		
 	}
 
-	public function post_data($url, $fields)
-	{
-		$post_field_string = http_build_query($fields, '', '&');
-	    
-	    $ch = curl_init();
-	    
-	    curl_setopt($ch, CURLOPT_URL, $url);
-	    
-	    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-	    
-	    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-	    
-	    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-	    
-	    curl_setopt($ch, CURLOPT_POSTFIELDS, $post_field_string);
-	    
-	    curl_setopt($ch, CURLOPT_POST, true);
-	    
-	    $response = curl_exec($ch);
-	    
-	    curl_close ($ch);
-	    
-	    return $response;
-	}
-
-	public function receive_post(){
-		$data = $this->input->post();
-		echo "<pre>";print_r($data);
-	}
+	public function upload_file_to_server(){
+        $source = 'uploads/'.$fileName;
+                
+        //Load codeigniter FTP class
+        $this->load->library('ftp');
+        
+        //FTP configuration
+        $ftp_config['hostname'] = 'ftp.example.com'; 
+        $ftp_config['username'] = 'ftp_username';
+        $ftp_config['password'] = 'ftp_password';
+        $ftp_config['debug']    = TRUE;
+        
+        //Connect to the remote server
+        $this->ftp->connect($ftp_config);
+        
+        //File upload path of remote server
+        $destination = '/assets/'.$fileName;
+        
+        //Upload file to the remote server
+        $this->ftp->upload($source, ".".$destination);
+        
+        //Close FTP connection
+        $this->ftp->close();
+        
+        //Delete file from local server
+        @unlink($source);
+}
 
 	public function receive_data_new()
 	{
