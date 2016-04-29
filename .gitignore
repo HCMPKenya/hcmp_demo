@@ -22,3 +22,5 @@ application/config/config.php
 README.md
 sync_files/
 dbv/config.php
+sync_files/sample.txt
+sync_files

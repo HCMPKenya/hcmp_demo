@@ -810,7 +810,7 @@ class Admin extends MY_Controller {
 	public function upload_report_listing_excel(){
 		// echo "<pre>";print_r($this->input->post());echo "</pre>";exit;
 		// error_reporting(E_ALL);
-		$config['upload_path'] = 'print_docs/excel/uploaded_files/';
+		$config['upload_path'] = './print_docs/excel/uploaded_files/';
 		$config['allowed_types'] = 'xls|xlsx';
 		$config['max_size']	= '2048';
 		$name = 'inventory_'.date('d-m-Y').'_';
@@ -1024,6 +1024,28 @@ class Admin extends MY_Controller {
 		$result = $this->db->query($query)->result_array();//FACILITY CODE SEARCH
 		// echo "<pre>";print_r($result);exit;	
 		return $result;
+	}
+
+	public function set_log_facility(){
+		$sql = "select distinct user_id from log where user_id in (select distinct id from user)";
+		$result = $this->db->query($sql)->result_array();	
+		// echo count($result);die;	
+			// echo "<pre>";print_r($result_facilities);die;
+
+		foreach ($result as $key => $value) {
+			$user_id = $value['user_id'];
+			$sql_get_facility = "select facility from user where id='$user_id'";
+			$result_facilities = $this->db->query($sql_get_facility)->result_array();
+			foreach ($result_facilities as $keys => $values) {
+				$facility_code = $values['facility'];
+				if($facility_code!=0){
+					$sql_update  = "update log set facility_code='$facility_code' where user_id='$user_id'";
+					$this->db->query($sql_update);
+				}
+			}
+
+
+		}
 	}
 
 

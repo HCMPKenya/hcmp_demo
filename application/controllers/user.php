@@ -79,7 +79,7 @@ class User extends MY_Controller {
 			$facility_no = Counties::get_facilities_in_county($county_id);
 			$facility_count = "Total Facilities Using HCMP in ".$county_name['county']." County: ".count($facility_no);
 			
-			elseif ($user_indicator  == 'facility' || $user_indicator == 'facility_admin') :
+			elseif ($user_indicator  == 'facility' || $user_indicator == 'facility_admin' || $user_indicator == 'recovery') :
              //get facility name
 				$facility_name = Facilities::get_facility_name2($facility_id);
 			$district_name = districts::get_district_name_($district_id);
@@ -107,7 +107,6 @@ class User extends MY_Controller {
 				$menus[$counter] = array("menu_text" => $menu_item -> menu_text, "menu_url" => $menu_item -> menu_url, "menu_id" => $menu_item -> id, "parent_status" => $menu_item -> parent_status);
 				$counter++;
 				$menuids[] = $menu_item -> id;
-
 			}
 			
 			$sub_menus = array();
@@ -129,11 +128,12 @@ class User extends MY_Controller {
 			
 			//creating a new log value
 			Log::update_log_out_action($this -> session -> userdata('user_id'));
-			
+			$facility_code = $this -> session -> userdata('facility_id');
 			$u1 = new Log();
 			$action = 'Logged In';
-			$u1->user_id = $this -> session -> userdata('user_id');
-			$u1->action = $action;
+			$u1->user_id = $this -> session -> userdata('user_id');			
+			$u1->action = $action;			
+			$u1->facility_code = ($facility_code==0) ? null : $facility_code;
 			$u1->save();
 			
 			redirect('home');
@@ -417,6 +417,16 @@ class User extends MY_Controller {
 									Users::reset_password_multiple($facility_code, '123456');
 									echo true;
 								}
+
+								public function reset_select_multiple_pass($user_array){
+
+									foreach($user_array as $user_id){
+										Users::reset_password($user_id, '123456');
+										
+									}
+									echo true;
+
+								}
 								public function user_create($reset_user = NULL,$password_reset = NULL) {
 									if (isset($password_reset) && $password_reset == 1) {
 										$data['reset_user_id'] = isset($reset_user)?$reset_user:NULL;
@@ -438,6 +448,7 @@ class User extends MY_Controller {
 										$district = $this -> session -> userdata('district_id');
 										$county = $this -> session -> userdata('county_id');
 										$facility = $this -> session -> userdata('facility_id');
+										
 			//query to get user listing by type of user
 
 										switch ($identifier):
@@ -496,6 +507,7 @@ class User extends MY_Controller {
 										$data['user_types']=Access_level::get_access_levels($permissions);	
 										$data['banner_text'] = "User Management";
 										$data['content_view'] = "shared_files/user_creation_v";
+										$data['current_user_id'] = $this-> session -> userdata('user_id');
 										$this -> load -> view($template, $data);
 									}
 		//get user details in session
